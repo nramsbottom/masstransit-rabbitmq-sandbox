@@ -10,10 +10,12 @@ namespace PublishingWebApplication.Controllers
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly IBusControl _bus;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger, IBusControl bus)
         {
             _logger = logger;
+            _bus = bus;
         }
 
         public IActionResult Index()
@@ -25,7 +27,11 @@ namespace PublishingWebApplication.Controllers
         public IActionResult Index([FromForm] string action)
         {
 
-            PublishMessage();
+            _bus.Publish<Contracts.SomethingHappened>(new Messages.SomethingHappened()
+            {
+                What = "A message was sent from ASP.NET",
+                When = DateTime.Now
+            });
 
             return View();
         }
@@ -39,28 +45,6 @@ namespace PublishingWebApplication.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
-
-
-
-        private void PublishMessage()
-        {
-            var bus = Bus.Factory.CreateUsingRabbitMq(x =>
-                               x.Host(new Uri("rabbitmq://localhost/"), h =>
-                               {
-                                   h.Username("guest");
-                                   h.Password("guest");
-                               }));
-
-            bus.Start();
-
-            bus.Publish<Contracts.SomethingHappened>(new Messages.SomethingHappened()
-            {
-                What = "A message was sent from ASP.NET",
-                When = DateTime.Now
-            });
-
-            bus.Stop();
         }
 
     }
